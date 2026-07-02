@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mille Nodes Logo — v1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const W = 1200, H = 700;
+canvas.width = W;
+canvas.height = H;
+
+function drawGrid() {
+  // Perspective grid below text — Tron floor
+  const horizon = H * 0.58;
+  const bottom = H;
+  const vanishX = W / 2;
+
+  ctx.save();
+
+  // Horizontal lines (receding into distance)
+  for (let i = 0; i < 20; i++) {
+    const t = i / 20;
+    const y = horizon + (bottom - horizon) * (t * t); // quadratic spacing for perspective
+    const alpha = 0.08 + t * 0.25;
+    ctx.strokeStyle = `rgba(0, 220, 255, ${alpha})`;
+    ctx.lineWidth = 0.5 + t * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Vertical lines (converging to vanishing point)
+  for (let i = -15; i <= 15; i++) {
+    const spread = i * 60;
+    const alpha = 0.06 + Math.abs(i) * 0.012;
+    ctx.strokeStyle = `rgba(0, 220, 255, ${Math.min(alpha, 0.3)})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(vanishX, horizon);
+    ctx.lineTo(vanishX + spread * 2.5, bottom + 50);
+    ctx.stroke();
+  }
+
+  // Horizon glow
+  const horizonGlow = ctx.createLinearGradient(0, horizon - 20, 0, horizon + 30);
+  horizonGlow.addColorStop(0, 'rgba(255, 0, 120, 0)');
+  horizonGlow.addColorStop(0.4, 'rgba(255, 0, 120, 0.15)');
+  horizonGlow.addColorStop(0.6, 'rgba(0, 200, 255, 0.1)');
+  horizonGlow.addColorStop(1, 'rgba(0, 200, 255, 0)');
+  ctx.fillStyle = horizonGlow;
+  ctx.fillRect(0, horizon - 20, W, 50);
+
+  ctx.restore();
+}
+
+function drawText() {
+  const text1 = 'MILLE';
+  const text2 = 'NODES';
+  const fontSize = 120;
+  const y1 = H * 0.32;
+  const y2 = H * 0.50;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 ${fontSize}px 'Arial Black', 'Impact', sans-serif`;
+  ctx.letterSpacing = '12px';
+
+  // Chrome gradient — blue top to magenta bottom
+  const chromeGrad = ctx.createLinearGradient(0, y1 - 60, 0, y2 + 60);
+  chromeGrad.addColorStop(0, '#4de8ff');    // bright cyan
+  chromeGrad.addColorStop(0.25, '#b8f0ff'); // light chrome
+  chromeGrad.addColorStop(0.45, '#ffffff'); // white hot center
+  chromeGrad.addColorStop(0.55, '#ffb8d4'); // pink chrome
+  chromeGrad.addColorStop(0.75, '#ff3090'); // hot magenta
+  chromeGrad.addColorStop(1, '#8b0040');    // deep magenta
+
+  // Outer glow (cyan)
+  ctx.shadowColor = 'rgba(0, 220, 255, 0.8)';
+  ctx.shadowBlur = 40;
+  ctx.fillStyle = chromeGrad;
+  ctx.fillText(text1, W/2, y1);
+  ctx.fillText(text2, W/2, y2);
+
+  // Second pass — tighter glow (magenta)
+  ctx.shadowColor = 'rgba(255, 0, 120, 0.4)';
+  ctx.shadowBlur = 20;
+  ctx.fillText(text1, W/2, y1);
+  ctx.fillText(text2, W/2, y2);
+
+  // Chrome highlight edge
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.strokeText(text1, W/2, y1);
+  ctx.strokeText(text2, W/2, y2);
+
+  ctx.restore();
+}
+
+function drawReflection() {
+  const text1 = 'MILLE';
+  const text2 = 'NODES';
+  const fontSize = 120;
+  const y1 = H * 0.32;
+  const y2 = H * 0.50;
+  const reflectOffset = H * 0.36; // distance below original
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 ${fontSize}px 'Arial Black', 'Impact', sans-serif`;
+
+  // Flip vertically
+  ctx.translate(0, (y2 + reflectOffset) * 2);
+  ctx.scale(1, -1);
+
+  // Reflection gradient — fades to grid color then transparent
+  const reflGrad = ctx.createLinearGradient(0, y1 - 60, 0, y2 + 80);
+  reflGrad.addColorStop(0, 'rgba(0, 180, 220, 0.35)');
+  reflGrad.addColorStop(0.3, 'rgba(0, 220, 255, 0.2)');
+  reflGrad.addColorStop(0.6, 'rgba(0, 220, 255, 0.08)');
+  reflGrad.addColorStop(1, 'rgba(0, 220, 255, 0)');
+
+  ctx.fillStyle = reflGrad;
+  ctx.fillText(text2, W/2, y1);
+  ctx.fillText(text1, W/2, y2);
+
+  ctx.restore();
+}
+
+function drawSun() {
+  // Outrun sun — sits at the horizon behind everything
+  const cx = W / 2;
+  const cy = H * 0.56;
+  const r = 60;
+
+  ctx.save();
+
+  const sunGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2);
+  sunGrad.addColorStop(0, 'rgba(255, 60, 120, 0.25)');
+  sunGrad.addColorStop(0.3, 'rgba(255, 0, 90, 0.12)');
+  sunGrad.addColorStop(0.7, 'rgba(120, 0, 60, 0.05)');
+  sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Horizontal scan lines through sun (Outrun signature)
+  for (let i = -4; i <= 4; i++) {
+    const ly = cy + i * 8;
+    ctx.strokeStyle = `rgba(0, 0, 0, ${0.4 - Math.abs(i) * 0.04})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, ly);
+    ctx.lineTo(cx + r, ly);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// Render order matters
+ctx.fillStyle = '#0a0a0f';
+ctx.fillRect(0, 0, W, H);
+
+drawSun();
+drawGrid();
+drawReflection();
+drawText();
+
+// Subtle vignette
+const vig = ctx.createRadialGradient(W/2, H/2, W*0.25, W/2, H/2, W*0.7);
+vig.addColorStop(0, 'rgba(0,0,0,0)');
+vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+ctx.fillStyle = vig;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

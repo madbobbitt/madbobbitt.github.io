@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+const entries = (await getCollection('log'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const fmt = (d) => d.toISOString().slice(0, 10);
+---
+<Base title="Devlog">
+  <h1>Devlog</h1>
+  <p class="meta">
+    The transparency changelog. Raw notes over polished posts. Entries graduate from
+    <span class="badge seed">seed</span> to <span class="badge growing">growing</span> to
+    <span class="badge evergreen">evergreen</span> as they ripen.
+  </p>
+  <ul class="loglist">
+    {entries.map((e) => (
+      <li>
+        <a href={`/log/${e.id}/`}>{e.data.title}</a>
+        <span class="meta">{fmt(e.data.date)}{e.data.project ? ` · ${e.data.project}` : ''}</span>
+        <span class={`badge ${e.data.stage}`}>{e.data.stage}</span>
+      </li>
+    ))}
+  </ul>
+</Base>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DigiNodes — Teaser</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #060610;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    gap: 20px;
+  }
+  canvas { display: block; }
+  .btn-row { display: flex; gap: 12px; }
+  button {
+    padding: 12px 24px;
+    background: #ff2080;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: sans-serif;
+  }
+  button:hover { background: #ff40a0; }
+  button.alt { background: #0088cc; }
+  button.alt:hover { background: #00aaee; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="btn-row">
+  <button onclick="saveImage('fb')">Save FB (1200×630)</button>
+  <button class="alt" onclick="saveImage('square')">Save Square (1080×1080)</button>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// FB recommended: 1200x630
+const W = 1200, H = 630;
+canvas.width = W;
+canvas.height = H;
+
+function drawSky() {
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+  sky.addColorStop(0, '#02020a');
+  sky.addColorStop(0.3, '#06041a');
+  sky.addColorStop(0.6, '#140828');
+  sky.addColorStop(1, '#1e0a38');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawStars() {
+  let seed = 77;
+  function srand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+  ctx.save();
+  for (let i = 0; i < 120; i++) {
+    const x = srand() * W;
+    const y = srand() * H * 0.38;
+    const size = srand() * 1.2 + 0.2;
+    const alpha = srand() * 0.5 + 0.1;
+    const hue = srand() > 0.7 ? '180, 240, 255' : '200, 220, 255';
+    ctx.fillStyle = `rgba(${hue}, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawSun() {
+  const cx = W / 2;
+  const cy = H * 0.48;
+  const r = 110;
+
+  ctx.save();
+
+  // Outer glow
+  const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 3.5);
+  glow.addColorStop(0, 'rgba(255, 60, 120, 0.18)');
+  glow.addColorStop(0.15, 'rgba(255, 30, 80, 0.08)');
+  glow.addColorStop(0.4, 'rgba(160, 0, 80, 0.03)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sun body
+  const sunGrad = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+  sunGrad.addColorStop(0, '#ffe060');
+  sunGrad.addColorStop(0.12, '#ffb838');
+  sunGrad.addColorStop(0.30, '#ff5842');
+  sunGrad.addColorStop(0.50, '#ff2070');
+  sunGrad.addColorStop(0.72, '#c01080');
+  sunGrad.addColorStop(1, '#400030');
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+
+  // Scanlines through sun
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 14; i++) {
+    const t = i / 14;
+    const ly = cy - r * 0.15 + r * 1.15 * t;
+    const gap = 1.0 + t * 5.5;
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.15 + t * 0.85})`;
+    ctx.fillRect(cx - r - 5, ly, r * 2 + 10, gap);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  const horizon = H * 0.58;
+  const bottom = H + 40;
+  const vanishX = W / 2;
+
+  ctx.save();
+
+  // Floor gradient
+  const floorGrad = ctx.createLinearGradient(0, horizon, 0, bottom);
+  floorGrad.addColorStop(0, 'rgba(8, 2, 20, 0.97)');
+  floorGrad.addColorStop(1, 'rgba(3, 1, 10, 1)');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, horizon, W, bottom - horizon);
+
+  // Horizon line with bloom
+  ctx.strokeStyle = 'rgba(255, 40, 120, 0.8)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(W, horizon);
+  ctx.stroke();
+
+  const hBloom = ctx.createLinearGradient(0, horizon - 15, 0, horizon + 15);
+  hBloom.addColorStop(0, 'rgba(255, 40, 120, 0)');
+  hBloom.addColorStop(0.5, 'rgba(255, 40, 120, 0.25)');
+  hBloom.addColorStop(1, 'rgba(255, 40, 120, 0)');
+  ctx.fillStyle = hBloom;
+  ctx.fillRect(0, horizon - 15, W, 30);
+
+  // Horizontal grid lines
+  for (let i = 0; i < 28; i++) {
+    const t = i / 28;
+    const y = horizon + (bottom - horizon) * (t * t);
+    const alpha = 0.03 + t * 0.40;
+    const r = Math.floor(255 * (1 - t) + 0 * t);
+    const g = Math.floor(40 * (1 - t) + 220 * t);
+    const b = Math.floor(120 * (1 - t) + 255 * t);
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    ctx.lineWidth = 0.3 + t * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Vertical converging lines
+  for (let i = -22; i <= 22; i++) {
+    const spread = i * 38;
+    const dist = Math.abs(i) / 22;
+    const alpha = Math.max(0.02, 0.28 - dist * 0.22);
+    const brightness = 1 - dist * 0.5;
+    ctx.strokeStyle = `rgba(0, ${Math.floor(220 * brightness)}, ${Math.floor(255 * brightness)}, ${alpha})`;
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(vanishX, horizon);
+    ctx.lineTo(vanishX + spread * 3.8, bottom + 50);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawDataParticles() {
+  let seed = 314;
+  function srand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+
+  ctx.save();
+  // Floating data particles / node lights
+  for (let i = 0; i < 35; i++) {
+    const x = srand() * W;
+    const y = H * 0.15 + srand() * H * 0.45;
+    const size = srand() * 2.5 + 0.5;
+    const alpha = srand() * 0.4 + 0.1;
+    const type = srand();
+
+    if (type > 0.6) {
+      // Cyan particles
+      ctx.fillStyle = `rgba(0, 220, 255, ${alpha})`;
+      ctx.shadowColor = 'rgba(0, 220, 255, 0.6)';
+    } else if (type > 0.3) {
+      // Pink particles
+      ctx.fillStyle = `rgba(255, 60, 160, ${alpha})`;
+      ctx.shadowColor = 'rgba(255, 60, 160, 0.6)';
+    } else {
+      // White particles
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.7})`;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+    }
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawNodeConnections() {
+  let seed = 159;
+  function srand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+
+  ctx.save();
+  // Subtle network connection lines between some particles
+  const nodes = [];
+  for (let i = 0; i < 12; i++) {
+    nodes.push({
+      x: W * 0.15 + srand() * W * 0.7,
+      y: H * 0.08 + srand() * H * 0.35
+    });
+  }
+
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 250) {
+        const alpha = (1 - dist / 250) * 0.12;
+        ctx.strokeStyle = `rgba(0, 200, 255, ${alpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Node dots
+  for (const n of nodes) {
+    ctx.fillStyle = 'rgba(0, 220, 255, 0.35)';
+    ctx.shadowColor = 'rgba(0, 220, 255, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawText() {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const y1 = H * 0.18;
+  const y2 = H * 0.40;
+
+  // Chrome gradient
+  const chromeGrad = ctx.createLinearGradient(0, y1 - 80, 0, y2 + 80);
+  chromeGrad.addColorStop(0, '#50e8ff');
+  chromeGrad.addColorStop(0.10, '#80f0ff');
+  chromeGrad.addColorStop(0.22, '#c0f8ff');
+  chromeGrad.addColorStop(0.38, '#ffffff');
+  chromeGrad.addColorStop(0.50, '#ffd0e8');
+  chromeGrad.addColorStop(0.65, '#ff60a0');
+  chromeGrad.addColorStop(0.80, '#ff2080');
+  chromeGrad.addColorStop(1, '#a00060');
+
+  // DIGI
+  ctx.font = `900 140px 'Arial Black', 'Impact', sans-serif`;
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.9)';
+  ctx.shadowBlur = 80;
+  ctx.fillStyle = chromeGrad;
+  ctx.fillText('DIGI', W/2, y1);
+  ctx.shadowColor = 'rgba(255, 0, 120, 0.35)';
+  ctx.shadowBlur = 40;
+  ctx.fillText('DIGI', W/2, y1);
+
+  // NODES
+  ctx.font = `900 180px 'Arial Black', 'Impact', sans-serif`;
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.7)';
+  ctx.shadowBlur = 70;
+  ctx.fillStyle = chromeGrad;
+  ctx.fillText('NODES', W/2, y2);
+  ctx.shadowColor = 'rgba(255, 0, 120, 0.4)';
+  ctx.shadowBlur = 45;
+  ctx.fillText('NODES', W/2, y2);
+
+  // Edge highlights
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.font = `900 140px 'Arial Black', 'Impact', sans-serif`;
+  ctx.strokeText('DIGI', W/2, y1);
+  ctx.font = `900 180px 'Arial Black', 'Impact', sans-serif`;
+  ctx.strokeText('NODES', W/2, y2);
+
+  // Tagline
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.5)';
+  ctx.shadowBlur = 20;
+  ctx.font = `300 22px 'Segoe UI', 'Helvetica Neue', sans-serif`;
+  ctx.fillStyle = 'rgba(0, 220, 255, 0.6)';
+  ctx.fillText('T R A V E R S E   T H E   N E T W O R K', W/2, H * 0.86);
+
+  // Subtitle
+  ctx.shadowColor = 'rgba(255, 60, 160, 0.4)';
+  ctx.shadowBlur = 15;
+  ctx.font = `400 16px 'Segoe UI', 'Helvetica Neue', sans-serif`;
+  ctx.fillStyle = 'rgba(255, 120, 180, 0.5)';
+  ctx.fillText('A   J A I J A I   G A M E S   P R O D U C T I O N', W/2, H * 0.93);
+
+  ctx.restore();
+}
+
+// === Render ===
+drawSky();
+drawStars();
+drawNodeConnections();
+drawSun();
+drawGrid();
+drawDataParticles();
+drawText();
+
+// Vignette
+const vig = ctx.createRadialGradient(W/2, H*0.38, W*0.18, W/2, H*0.38, W*0.68);
+vig.addColorStop(0, 'rgba(0,0,0,0)');
+vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+ctx.fillStyle = vig;
+ctx.fillRect(0, 0, W, H);
+
+function saveImage(format) {
+  const link = document.createElement('a');
+  if (format === 'square') {
+    // Create square version
+    const sq = document.createElement('canvas');
+    sq.width = 1080; sq.height = 1080;
+    const sqCtx = sq.getContext('2d');
+    // Draw centered crop
+    const scale = 1080 / 630;
+    const sw = 1080 / scale;
+    sqCtx.drawImage(canvas, (W - sw)/2, 0, sw, H, 0, 0, 1080, 1080);
+    link.download = 'diginodes_teaser_square.png';
+    link.href = sq.toDataURL('image/png');
+  } else {
+    link.download = 'diginodes_teaser_fb.png';
+    link.href = canvas.toDataURL('image/png');
+  }
+  link.click();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+---
+const { title = 'Portal', description = 'Developer log, projects, and writing.' } = Astro.props;
+import '../styles/global.css';
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site">
+      <div class="inner">
+        <a class="brand" href="/">MDB</a>
+        <nav>
+          <a href="/log/">Devlog</a>
+          <a href="/projects/">Projects</a>
+          <a href="/writing/">Writing</a>
+          <a href="/about/">About</a>
+        </nav>
+      </div>
+    </header>
+    <main><slot /></main>
+    <footer class="site">
+      <div class="inner">
+        AI-assisted, human-architected. The <a href="/log/">devlog</a> has the receipts.
+      </div>
+    </footer>
+  </body>
+</html>

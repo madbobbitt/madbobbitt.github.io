@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Million Nodes — v3</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #060610;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const W = 1400, H = 788;
+canvas.width = W;
+canvas.height = H;
+
+function drawSky() {
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+  sky.addColorStop(0, '#04040c');
+  sky.addColorStop(0.5, '#0a0620');
+  sky.addColorStop(1, '#180a35');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawStars() {
+  ctx.save();
+  for (let i = 0; i < 120; i++) {
+    const x = Math.random() * W;
+    const y = Math.random() * H * 0.42;
+    const size = Math.random() * 1.2 + 0.3;
+    const alpha = Math.random() * 0.5 + 0.1;
+    ctx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawSun() {
+  const cx = W / 2;
+  const cy = H * 0.48;
+  const r = 160;
+
+  ctx.save();
+
+  // Massive outer glow
+  const glow = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 3.5);
+  glow.addColorStop(0, 'rgba(255, 60, 100, 0.2)');
+  glow.addColorStop(0.2, 'rgba(255, 30, 80, 0.1)');
+  glow.addColorStop(0.5, 'rgba(160, 0, 80, 0.04)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sun body
+  const sunGrad = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+  sunGrad.addColorStop(0, '#ffe050');
+  sunGrad.addColorStop(0.15, '#ffb030');
+  sunGrad.addColorStop(0.35, '#ff5040');
+  sunGrad.addColorStop(0.55, '#ff2070');
+  sunGrad.addColorStop(0.75, '#c01080');
+  sunGrad.addColorStop(1, '#500040');
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+
+  // Scan lines — Outrun signature (cut through sun)
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 14; i++) {
+    const t = i / 14;
+    const ly = cy - r * 0.15 + r * 1.15 * t;
+    const gap = 1.5 + t * 7;
+    const alpha = 0.2 + t * 0.8;
+    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+    ctx.fillRect(cx - r - 5, ly, r * 2 + 10, gap);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Hot edge glow
+  const edgeGlow = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.2);
+  edgeGlow.addColorStop(0, 'rgba(255, 120, 50, 0)');
+  edgeGlow.addColorStop(0.6, 'rgba(255, 50, 100, 0.15)');
+  edgeGlow.addColorStop(1, 'rgba(255, 0, 60, 0)');
+  ctx.fillStyle = edgeGlow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  const horizon = H * 0.57;
+  const bottom = H + 30;
+  const vanishX = W / 2;
+
+  ctx.save();
+
+  // Floor darkness
+  const floorGrad = ctx.createLinearGradient(0, horizon, 0, bottom);
+  floorGrad.addColorStop(0, 'rgba(8, 3, 20, 0.9)');
+  floorGrad.addColorStop(1, 'rgba(3, 1, 10, 1)');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, horizon, W, bottom - horizon);
+
+  // Horizon glow line
+  ctx.strokeStyle = 'rgba(255, 40, 100, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(W, horizon);
+  ctx.stroke();
+
+  // Softer horizon bloom
+  const hBloom = ctx.createLinearGradient(0, horizon - 15, 0, horizon + 15);
+  hBloom.addColorStop(0, 'rgba(255, 40, 100, 0)');
+  hBloom.addColorStop(0.5, 'rgba(255, 40, 100, 0.2)');
+  hBloom.addColorStop(1, 'rgba(255, 40, 100, 0)');
+  ctx.fillStyle = hBloom;
+  ctx.fillRect(0, horizon - 15, W, 30);
+
+  // Horizontal grid lines
+  for (let i = 0; i < 30; i++) {
+    const t = i / 30;
+    const y = horizon + (bottom - horizon) * (t * t);
+    const alpha = 0.04 + t * 0.3;
+    ctx.strokeStyle = `rgba(0, 220, 255, ${alpha})`;
+    ctx.lineWidth = 0.4 + t * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Vertical converging lines
+  for (let i = -25; i <= 25; i++) {
+    const spread = i * 45;
+    const alpha = Math.max(0.03, 0.2 - Math.abs(i) * 0.007);
+    ctx.strokeStyle = `rgba(0, 220, 255, ${alpha})`;
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(vanishX, horizon);
+    ctx.lineTo(vanishX + spread * 3.5, bottom + 60);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawReflection() {
+  const horizon = H * 0.57;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Squished vertical reflection below horizon
+  ctx.translate(W/2, horizon);
+  ctx.scale(1, 0.35);
+  ctx.translate(-W/2, -horizon);
+
+  // MILLION
+  ctx.font = `900 180px 'Arial Black', 'Impact', sans-serif`;
+  const reflGrad1 = ctx.createLinearGradient(0, horizon - 250, 0, horizon);
+  reflGrad1.addColorStop(0, 'rgba(0, 180, 255, 0)');
+  reflGrad1.addColorStop(0.6, 'rgba(0, 200, 255, 0.06)');
+  reflGrad1.addColorStop(1, 'rgba(0, 220, 255, 0.15)');
+  ctx.fillStyle = reflGrad1;
+  ctx.fillText('MILLION', W/2, horizon - 180);
+
+  // NODES
+  ctx.font = `900 200px 'Arial Black', 'Impact', sans-serif`;
+  ctx.fillText('NODES', W/2, horizon - 20);
+
+  ctx.restore();
+}
+
+function drawText() {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const y1 = H * 0.24;  // MILLION
+  const y2 = H * 0.46;  // NODES
+
+  // Chrome gradient spanning both words
+  const chromeGrad = ctx.createLinearGradient(0, y1 - 90, 0, y2 + 100);
+  chromeGrad.addColorStop(0, '#50e8ff');
+  chromeGrad.addColorStop(0.12, '#90f0ff');
+  chromeGrad.addColorStop(0.28, '#d0faff');
+  chromeGrad.addColorStop(0.42, '#ffffff');
+  chromeGrad.addColorStop(0.55, '#ffd8e8');
+  chromeGrad.addColorStop(0.68, '#ff60a0');
+  chromeGrad.addColorStop(0.82, '#ff2080');
+  chromeGrad.addColorStop(1, '#a00060');
+
+  // MILLION — slightly smaller, top word
+  ctx.font = `900 180px 'Arial Black', 'Impact', sans-serif`;
+
+  // Big cyan glow
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.8)';
+  ctx.shadowBlur = 80;
+  ctx.fillStyle = chromeGrad;
+  ctx.fillText('MILLION', W/2, y1);
+
+  // Magenta underglow
+  ctx.shadowColor = 'rgba(255, 0, 100, 0.35)';
+  ctx.shadowBlur = 40;
+  ctx.fillText('MILLION', W/2, y1);
+
+  // NODES — bigger, bottom word, fills width
+  ctx.font = `900 200px 'Arial Black', 'Impact', sans-serif`;
+
+  ctx.shadowColor = 'rgba(0, 200, 255, 0.6)';
+  ctx.shadowBlur = 70;
+  ctx.fillText('NODES', W/2, y2);
+
+  ctx.shadowColor = 'rgba(255, 0, 100, 0.4)';
+  ctx.shadowBlur = 45;
+  ctx.fillText('NODES', W/2, y2);
+
+  // White highlight stroke
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.font = `900 180px 'Arial Black', 'Impact', sans-serif`;
+  ctx.strokeText('MILLION', W/2, y1);
+  ctx.font = `900 200px 'Arial Black', 'Impact', sans-serif`;
+  ctx.strokeText('NODES', W/2, y2);
+
+  ctx.restore();
+}
+
+// Render order
+drawSky();
+drawStars();
+drawSun();
+drawGrid();
+drawReflection();
+drawText();
+
+// Vignette
+const vig = ctx.createRadialGradient(W/2, H*0.38, W*0.25, W/2, H*0.38, W*0.72);
+vig.addColorStop(0, 'rgba(0,0,0,0)');
+vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+ctx.fillStyle = vig;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

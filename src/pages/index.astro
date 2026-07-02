@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+const entries = (await getCollection('log'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+const fmt = (d) => d.toISOString().slice(0, 10);
+---
+<Base title="Michael Bobbitt — builds, games, writing">
+  <h1>Building things one session at a time</h1>
+  <p>
+    Apps, games, and fiction: designed by a human, built with AI as the tool.
+    Every project here links back to the <a href="/log/">devlog</a> that built it:
+    the choices, the dead ends, the architecture. All the bad along with the good.
+  </p>
+
+  <h2>Latest from the devlog</h2>
+  <ul class="loglist">
+    {entries.map((e) => (
+      <li>
+        <a href={`/log/${e.id}/`}>{e.data.title}</a>
+        <span class="meta">{fmt(e.data.date)}</span>
+        <span class={`badge ${e.data.stage}`}>{e.data.stage}</span>
+      </li>
+    ))}
+  </ul>
+
+  <h2>Projects</h2>
+  <div class="card">
+    <h3><a href="/projects/quest-planner/">Quest Planner</a></h3>
+    <p>A gamified Franklin-style day planner for iOS. In build.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/projects/diginodes/">DigiNodes</a></h3>
+    <p>A digital card game on a proven engine. Playable build coming to <a href="/play/">/play/</a>.</p>
+  </div>
+  <div class="card">
+    <h3><a href="/projects/">More in design →</a></h3>
+    <p>Two simulation games in the design phase, plus prototypes.</p>
+  </div>
+</Base>
